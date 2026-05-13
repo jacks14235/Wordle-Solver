@@ -24,7 +24,7 @@ const emptyProgress = {
 function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('solver')
   const [inputMode, setInputMode] = useState<InputMode>('generate')
-  const [answer, setAnswer] = useState('fjord')
+  const [answer, setAnswer] = useState('cheat')
   const [nTrials, setNTrials] = useState(10)
   const [seed, setSeed] = useState('1')
   const [pastedGrids, setPastedGrids] = useState(
