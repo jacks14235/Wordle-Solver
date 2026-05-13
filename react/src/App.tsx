@@ -117,10 +117,11 @@ function App() {
       <section className="hero-panel">
         <div>
           <p className="eyebrow">Hidden Wordle solver</p>
-          <h1>Generate hard-mode score grids and solve them in WASM.</h1>
+          <h1>Solve Wordle using nothing but your friends' answer grids.</h1>
           <p className="lede">
-            The Rust solver runs in a Web Worker so the grids and progress bars
-            keep updating while the candidate search runs.
+            Give the solver the blank colored grids people share after playing, and it works
+            backward to eliminate answers that could not have produced them. It is Wordle
+            sleuthing from public clues only: suspiciously useful, but not technically cheating.
           </p>
         </div>
 
