@@ -11,6 +11,7 @@ type WorkerMessage =
 
 type RunStatus = 'idle' | 'running' | 'done' | 'error'
 type ActiveTab = 'solver' | 'how-it-works'
+type InputMode = 'generate' | 'paste'
 
 const emptyProgress = {
   prefilter: undefined,
@@ -22,9 +23,13 @@ const emptyProgress = {
 
 function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('solver')
+  const [inputMode, setInputMode] = useState<InputMode>('generate')
   const [answer, setAnswer] = useState('fjord')
   const [nTrials, setNTrials] = useState(10)
   const [seed, setSeed] = useState('1')
+  const [pastedGrids, setPastedGrids] = useState(
+    '⬛⬛⬛⬛🟨\n🟨⬛⬛⬛⬛\n⬛⬛🟩🟩🟩\n⬛⬛🟩🟩🟩\n🟩🟩🟩🟩🟩',
+  )
   const [hardMode, setHardMode] = useState(true)
   const [showLetters, setShowLetters] = useState(false)
   const [status, setStatus] = useState<RunStatus>('idle')
@@ -92,8 +97,10 @@ function App() {
 
     worker.postMessage({
       type: 'solve',
+      mode: inputMode,
       answer: answer.trim().toLowerCase(),
       nTrials,
+      pastedGrids,
       seed,
       hardMode,
     })
@@ -124,6 +131,25 @@ function App() {
             runSolver()
           }}
         >
+          <div className="mode-switch" role="group" aria-label="Game source">
+            <button
+              className={inputMode === 'generate' ? 'mode-button active' : 'mode-button'}
+              type="button"
+              onClick={() => setInputMode('generate')}
+            >
+              Generate
+            </button>
+            <button
+              className={inputMode === 'paste' ? 'mode-button active' : 'mode-button'}
+              type="button"
+              onClick={() => setInputMode('paste')}
+            >
+              Paste grids
+            </button>
+          </div>
+
+          {inputMode === 'generate' ? (
+            <>
           <label>
             Answer
             <input
@@ -160,10 +186,30 @@ function App() {
             />
             Hard-mode trial generation
           </label>
+            </>
+          ) : (
+            <label>
+              Pasted grids
+              <textarea
+                value={pastedGrids}
+                onChange={(event) => setPastedGrids(event.target.value)}
+                rows={8}
+                spellCheck={false}
+              />
+              <span className="field-help">
+                Paste emoji or B/Y/G rows. Spaces and tabs are ignored; separate games with one
+                or more equals signs.
+              </span>
+            </label>
+          )}
 
           <div className="button-row">
             <button disabled={status === 'running'} type="submit">
-              {status === 'running' ? 'Solving...' : 'Generate and solve'}
+              {status === 'running'
+                ? 'Solving...'
+                : inputMode === 'paste'
+                  ? 'Solve pasted grids'
+                  : 'Generate and solve'}
             </button>
             <button
               disabled={status !== 'running'}
@@ -220,7 +266,7 @@ function App() {
           <section className="content-grid">
             <div className="panel">
               <div className="panel-heading">
-                <h2>Generated Games</h2>
+                <h2>{inputMode === 'paste' ? 'Pasted Games' : 'Generated Games'}</h2>
                 <label className="checkbox-row compact">
                   <input
                     type="checkbox"
@@ -298,6 +344,16 @@ function ProgressBar({
   )
 }
 
+function tileClass(tile: string | undefined) {
+  if (tile === '🟩' || tile === 'G' || tile === 'g') {
+    return 'g'
+  }
+  if (tile === '🟨' || tile === 'Y' || tile === 'y') {
+    return 'y'
+  }
+  return 'b'
+}
+
 function TrialCard({
   index,
   showLetters,
@@ -310,24 +366,30 @@ function TrialCard({
   return (
     <article className="trial-card">
       <div className="trial-heading">
-        <h3>Trial {index + 1}</h3>
-        <span>{trial.guesses.at(-1)?.remaining ?? 0} remaining</span>
+        <h3>Game {index + 1}</h3>
+        {trial.guesses.at(-1)?.remaining !== undefined && (
+          <span>{trial.guesses.at(-1)?.remaining ?? 0} remaining</span>
+        )}
       </div>
       <div className="wordle-grid">
         {trial.guesses.map((guess, guessIdx) => (
-          <div className="wordle-row" key={`${guess.word}-${guessIdx}`}>
-            {guess.word.split('').map((letter, letterIdx) => (
+          <div className="wordle-row" key={`${guess.match}-${guessIdx}`}>
+            {Array.from(guess.match).map((tile, letterIdx) => {
+              const letter = guess.word?.[letterIdx] ?? ''
+              const shouldShowLetter = showLetters && letter.length > 0
+              return (
               <span
-                aria-label={showLetters ? letter : 'hidden letter'}
-                className={`tile tile-${guess.match[letterIdx]?.toLowerCase() ?? 'b'} ${
-                  showLetters ? '' : 'tile-hidden'
+                aria-label={shouldShowLetter ? letter : 'hidden letter'}
+                className={`tile tile-${tileClass(tile)} ${
+                  shouldShowLetter ? '' : 'tile-hidden'
                 }`}
-                key={`${letter}-${letterIdx}`}
+                key={`${tile}-${letterIdx}`}
               >
-                {showLetters ? letter : ''}
+                {shouldShowLetter ? letter : ''}
               </span>
-            ))}
-            <small>{guess.remaining}</small>
+              )
+            })}
+            {guess.remaining !== undefined && <small>{guess.remaining}</small>}
           </div>
         ))}
       </div>

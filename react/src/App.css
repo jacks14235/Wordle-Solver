@@ -52,7 +52,8 @@
   font-weight: 700;
 }
 
-.controls input {
+.controls input,
+.controls textarea {
   box-sizing: border-box;
   width: 100%;
   border: 1px solid var(--border);
@@ -61,6 +62,39 @@
   color: var(--text-h);
   background: var(--input-bg);
   font: inherit;
+}
+
+.controls textarea {
+  min-height: 150px;
+  resize: vertical;
+  font-family: var(--mono);
+  line-height: 1.5;
+}
+
+.field-help {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px;
+  background: var(--input-bg);
+}
+
+.mode-button {
+  color: var(--text);
+  background: transparent;
+}
+
+.mode-button.active {
+  color: white;
+  background: var(--accent);
 }
 
 .checkbox-row {

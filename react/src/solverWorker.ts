@@ -2,16 +2,16 @@ import init, {
   generate_trials,
   hard_mode_match_exists_with_progress,
   word_count,
-} from '../../rust_version/pkg/wordle_stuff.js'
+} from './wasm/wordle_stuff.js'
 
 export type TrialGuess = {
-  word: string
+  word?: string
   match: string
-  remaining: number
+  remaining?: number
 }
 
 export type TrialGame = {
-  answer: string
+  answer?: string
   guesses: TrialGuess[]
 }
 
@@ -25,8 +25,10 @@ export type SolverProgress = {
 
 type SolveMessage = {
   type: 'solve'
+  mode: 'generate' | 'paste'
   answer: string
   nTrials: number
+  pastedGrids: string
   seed: string
   hardMode: boolean
 }
@@ -44,6 +46,42 @@ const wasmReady = init().then(() => {
   send({ type: 'ready', wordCount: word_count() })
 })
 
+function parsePastedGames(input: string): TrialGame[] {
+  const games: TrialGame[] = []
+  let guesses: TrialGuess[] = []
+
+  for (const rawLine of input.split(/\r?\n/)) {
+    const line = rawLine.replace(/[^\S\n]/gu, '')
+    if (line.length === 0) {
+      continue
+    }
+
+    if (/^=+$/u.test(line)) {
+      if (guesses.length > 0) {
+        games.push({ guesses })
+        guesses = []
+      }
+      continue
+    }
+
+    if (Array.from(line).length !== 5) {
+      throw new Error(`Expected five tiles in pasted row: ${rawLine}`)
+    }
+
+    guesses.push({ match: line })
+  }
+
+  if (guesses.length > 0) {
+    games.push({ guesses })
+  }
+
+  if (games.length === 0) {
+    throw new Error('Paste at least one five-tile Wordle row.')
+  }
+
+  return games
+}
+
 self.onmessage = async (event: MessageEvent<SolveMessage>) => {
   if (event.data.type !== 'solve') {
     return
@@ -52,13 +90,15 @@ self.onmessage = async (event: MessageEvent<SolveMessage>) => {
   try {
     await wasmReady
 
-    const seed = BigInt(event.data.seed || Date.now())
-    const trials = generate_trials(
-      event.data.answer,
-      event.data.nTrials,
-      seed,
-      event.data.hardMode,
-    ) as TrialGame[]
+    const trials =
+      event.data.mode === 'paste'
+        ? parsePastedGames(event.data.pastedGrids)
+        : (generate_trials(
+            event.data.answer,
+            event.data.nTrials,
+            BigInt(event.data.seed || Date.now()),
+            event.data.hardMode,
+          ) as TrialGame[])
 
     send({ type: 'trials', trials })
 
