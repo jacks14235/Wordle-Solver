@@ -118,6 +118,24 @@ npm run preview
 
 See `rust_version/README.md` for the native Rust CLI and WASM API details.
 
+### GitHub Pages
+
+Pushing to GitHub does not publish the site by itself. This repo includes `.github/workflows/deploy-pages.yml`, which builds WASM + React on every push to `main` and deploys `react/dist` to GitHub Pages.
+
+After the first successful deploy, the site will be available at:
+
+```text
+https://<your-github-username>.github.io/<repo-name>/
+```
+
+For example, if the repo is `wordle-stuff`:
+
+```text
+https://yourname.github.io/wordle-stuff/
+```
+
+Make sure `words.txt` is committed. It is embedded into the WASM build at compile time, so the Pages workflow needs that file in the repository.
+
 ## Notes
 
 The hard-mode solver first uses the faster independent-row pass as a prefilter, then performs the more expensive sequential check on the survivors. This keeps the solver correct while avoiding deeper analysis for answers that cannot explain the score rows at all.

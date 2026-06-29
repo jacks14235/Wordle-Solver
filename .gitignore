@@ -1,4 +1,4 @@
-*.txt
+possible-words.txt
 __pycache__/
 rust_version/target/
 react/dist/
