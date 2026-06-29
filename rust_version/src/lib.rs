@@ -689,6 +689,7 @@ fn run_trial(
     let answer_counts = dict.counts[answer_idx];
     let mut candidate_idxs = (0..dict.words.len()).collect::<Vec<_>>();
     let mut hard_mode_state = initial_hard_mode_state();
+    let mut guessed = HashSet::new();
     let mut guesses = Vec::new();
 
     for _ in 0..6 {
@@ -696,16 +697,21 @@ fn run_trial(
             break;
         }
 
-        let guess_pool = if hard_mode {
-            hard_mode_guess_idxs(&hard_mode_state)
+        let guess_idx = if candidate_idxs.len() == 1 {
+            candidate_idxs[0]
         } else {
-            (0..dict.words.len()).collect()
+            let mut guess_pool = if hard_mode {
+                hard_mode_guess_idxs(&hard_mode_state)
+            } else {
+                (0..dict.words.len()).collect()
+            };
+            guess_pool.retain(|idx| !guessed.contains(idx));
+            if guess_pool.is_empty() {
+                break;
+            }
+            guess_pool[rng.gen_range(guess_pool.len())]
         };
-        if guess_pool.is_empty() {
-            break;
-        }
-
-        let guess_idx = guess_pool[rng.gen_range(guess_pool.len())];
+        guessed.insert(guess_idx);
         let guess = dict.words[guess_idx];
         let row = score_match(&guess, &answer, &answer_counts);
         let target = match_code(&row);

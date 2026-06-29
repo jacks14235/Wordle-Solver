@@ -39,6 +39,7 @@ def run_trial(
     """Simulate one random game against a fixed answer."""
     candidate_idxs = np.arange(len(words))
     hard_mode_state = initial_hard_mode_state()
+    guessed_idxs: set[int] = set()
     game = Game(answer=answer_word)
     match = np.empty(5, dtype=np.uint8)
     answer_counts = np.array(
@@ -50,11 +51,16 @@ def run_trial(
         if len(candidate_idxs) == 0:
             break
 
-        guess_pool = np.flatnonzero(hard_mode_guess_mask(hard_mode_state)) if hard_mode else np.arange(len(words))
-        if len(guess_pool) == 0:
-            break
+        if len(candidate_idxs) == 1:
+            guess_idx = int(candidate_idxs[0])
+        else:
+            guess_pool = np.flatnonzero(hard_mode_guess_mask(hard_mode_state)) if hard_mode else np.arange(len(words))
+            guess_pool = guess_pool[~np.isin(guess_pool, list(guessed_idxs))]
+            if len(guess_pool) == 0:
+                break
 
-        guess_idx = rng.choice(guess_pool)
+            guess_idx = int(rng.choice(guess_pool))
+        guessed_idxs.add(guess_idx)
         guess = words[guess_idx]
 
         score_guess(guess, answer.reshape(1, 5), answer_counts, match.reshape(1, 5))

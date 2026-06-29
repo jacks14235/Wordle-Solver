@@ -13,7 +13,10 @@ The code represents words as NumPy `uint8` arrays where `a=0`, `b=1`, and so on.
 - `game.py`: shared `Game` and `Guess` classes, word/tile conversion helpers, and terminal rendering.
 - `data_generator.py`: generates synthetic games for a known answer using random guesses.
 - `solve.py`: filters possible answers from observed score rows, including a deeper hard-mode solver.
-- `words.txt`: word list used for guesses and candidate answers.
+- `rust_version/`: Rust port of the solver, compiled to WASM for the browser.
+- `react/`: Vite + React UI that runs the WASM solver in a Web Worker.
+- `words.txt`: word list used for guesses and candidate answers (embedded into the WASM build).
+- `words_all.txt`: larger word list kept for reference or experiments.
 - `possible-words.txt`: output file written by `solve.py`.
 
 ## Generate Synthetic Data
@@ -75,6 +78,48 @@ Hide the guess letters and print only score emojis:
 print(game.toString(hidden=True))
 ```
 
+## React Site
+
+The browser UI lives in `react/`. It runs the Rust solver through WASM inside a Web Worker so the page stays responsive while the search runs.
+
+The app has two tabs:
+
+- **Solver**: generate synthetic games or paste real shared grids, then run the solver and inspect surviving answers.
+- **How it works**: background on the independent-row prefilter and the sequential hard-mode pass.
+
+In **Generate** mode, you pick an answer, number of games, seed, and whether trial generation uses hard mode. In **Paste grids** mode, paste emoji rows like `⬛🟨🟩🟩⬛`, separated by blank lines or `====` between games.
+
+### Build and run
+
+The WASM package must be built before the React app can use an updated solver or word list. From the repo root:
+
+```bash
+cd rust_version
+wasm-pack build --target web --release
+```
+
+Then start the React dev server:
+
+```bash
+cd ../react
+npm install
+npm run dev
+```
+
+`npm run dev` and `npm run build` automatically run `sync-wasm`, which copies the generated files from `rust_version/pkg/` into `react/src/wasm/`. If you change `words.txt`, rebuild WASM with `wasm-pack` and restart the dev server so the new dictionary is picked up.
+
+Production build:
+
+```bash
+cd react
+npm run build
+npm run preview
+```
+
+See `rust_version/README.md` for the native Rust CLI and WASM API details.
+
 ## Notes
 
 The hard-mode solver first uses the faster independent-row pass as a prefilter, then performs the more expensive sequential check on the survivors. This keeps the solver correct while avoiding deeper analysis for answers that cannot explain the score rows at all.
+
+The React app uses the same two-stage flow. The dictionary size shown in the UI comes from `word_count()` in the embedded WASM build, not from reading `words.txt` at runtime.
